@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Murdoku – El misterio del salón</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    body {
+      background: #f3f4f6;
+      color: #111827;
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* Layout general */
+    .container {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 16px;
+      gap: 16px;
+    }
+
+    .panel {
+      background: #ffffff;
+      border-radius: 8px;
+      padding: 12px 14px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .panel h2 {
+      font-size: 18px;
+      margin-bottom: 4px;
+      color: #111827;
+    }
+
+    .panel h3 {
+      font-size: 15px;
+      margin-top: 8px;
+      margin-bottom: 4px;
+      color: #374151;
+    }
+
+    .pistas {
+      font-size: 13px;
+      line-height: 1.4;
+      padding-left: 16px;
+    }
+
+    .pistas li {
+      margin-bottom: 4px;
+    }
+
+    .personajes-lista {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .personaje-card {
+      border-radius: 6px;
+      padding: 6px 8px;
+      background: #e5e7eb;
+      font-size: 12px;
+    }
+
+    .personaje-card span {
+      font-weight: 600;
+    }
+
+    /* Escenario */
+    .escenario-wrapper {
+      background: #ffffff;
+      border-radius: 8px;
+      padding: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .escenario-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .escenario-header h2 {
+      font-size: 18px;
+    }
+
+    .btn {
+      border: none;
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 13px;
+      cursor: pointer;
+      background: #2563eb;
+      color: #ffffff;
+    }
+
+    .btn:disabled {
+      background: #9ca3af;
+      cursor: default;
+    }
+
+    .mensaje {
+      font-size: 13px;
+      color: #059669;
+      font-weight: 600;
+      min-height: 18px;
+    }
+
+    .escenario {
+      position: relative;
+      margin-top: 4px;
+      border-radius: 8px;
+      background: #e5e7eb;
+      height: 480px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(3, 1fr);
+      gap: 6px;
+      padding: 6px;
+    }
+
+    .zona {
+      position: relative;
+      border-radius: 6px;
+      background: #f9fafb;
+      border: 1px solid #d1d5db;
+      overflow: hidden;
+    }
+
+    .zona-label {
+      position: absolute;
+      top: 4px;
+      left: 6px;
+      font-size: 11px;
+      color: #6b7280;
+      background: rgba(255,255,255,0.8);
+      padding: 2px 4px;
+      border-radius: 4px;
+    }
+
+    /* Muebles y elementos */
+    .mueble {
+      position: absolute;
+      border-radius: 4px;
+      opacity: 0.9;
+    }
+
+    .mesa {
+      background: #b45309;
+    }
+
+    .sofa {
+      background: #4b5563;
+    }
+
+    .planta {
+      background: #16a34a;
+      border-radius: 50%;
+    }
+
+    .ventana {
+      background: #38bdf8;
+    }
+
+    .puerta {
+      background: #78350f;
+    }
+
+    /* Personajes */
+    .personajes-banco {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 6px;
+      border-radius: 6px;
+      background: #f3f4f6;
+      min-height: 70px;
+    }
+
+    .personaje {
+      width: 60px;
+      height: 80px;
+      border-radius: 6px;
+      background: #fee2e2;
+      border: 2px solid #f97316;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding-top: 6px;
+      font-size: 11px;
+      cursor: grab;
+      user-select: none;
+    }
+
+    .personaje[data-rol="victima"] {
+      background: #fecaca;
+      border-color: #dc2626;
+    }
+
+    .personaje-cabeza {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: #facc15;
+      margin-bottom: 4px;
+    }
+
+    .personaje-cuerpo {
+      width: 30px;
+      height: 32px;
+      border-radius: 4px;
+      background: #3b82f6;
+    }
+
+    .personaje-nombre {
+      margin-top: 2px;
+      font-weight: 600;
+      text-align: center;
+    }
+
+    .zona-drop {
+      position: absolute;
+      inset: 0;
+      padding: 4px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+    }
+
+    .zona-drop.over {
+      outline: 2px dashed #2563eb;
+    }
+
+    .zona-drop .personaje {
+      margin-bottom: 4px;
+    }
+
+    /* Modal felicitación */
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(15,23,42,0.45);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+    }
+
+    .modal-contenido {
+      background: #ffffff;
+      border-radius: 10px;
+      padding: 18px 20px;
+      max-width: 360px;
+      text-align: center;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+    }
+
+    .modal-contenido h2 {
+      font-size: 20px;
+      margin-bottom: 8px;
+      color: #16a34a;
+    }
+
+    .modal-contenido p {
+      font-size: 14px;
+      margin-bottom: 12px;
+    }
+
+    .modal-contenido .btn {
+      background: #16a34a;
+    }
+
+    @media (max-width: 900px) {
+      body {
+        padding: 8px;
+      }
+      .container {
+        grid-template-columns: 1fr;
+      }
+      .escenario {
+        height: 420px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Panel lateral: personajes y pistas -->
+    <aside class="panel">
+      <h2>Personajes</h2>
+      <div class="personajes-lista">
+        <div class="personaje-card"><span>Víctima:</span> Don Ernesto, dueño de la mansión.</div>
+        <div class="personaje-card"><span>Mayordomo:</span> Ricardo, siempre atento.</div>
+        <div class="personaje-card"><span>Chef:</span> Lucía, experta en cenas elegantes.</div>
+        <div class="personaje-card"><span>Jardinero:</span> Mateo, cuida el invernadero.</div>
+        <div class="personaje-card"><span>Sobrina:</span> Ana, invitada a la velada.</div>
+        <div class="personaje-card"><span>Detective:</span> Vega, llega tras el crimen.</div>
+        <div class="personaje-card"><span>Invitado:</span> Sr. López, amigo de la familia.</div>
+      </div>
+
+      <h3>Pistas del misterio</h3>
+      <ul class="pistas">
+        <li>1. La víctima fue hallada junto a la <strong>mesa grande</strong> del salón.</li>
+        <li>2. El mayordomo estaba cerca de la <strong>puerta del pasillo</strong> cuando oyó el grito.</li>
+        <li>3. El chef nunca se aleja de la <strong>cocina</strong>, situada junto al <strong>sofá</strong> del salón.</li>
+        <li>4. El jardinero estaba mirando las <strong>plantas del invernadero</strong>, lejos de la ventana.</li>
+        <li>5. La sobrina Ana dijo que estaba cerca de la <strong>ventana</strong> cuando todo ocurrió.</li>
+        <li>6. El detective Vega llegó por la <strong>puerta principal</strong> y se quedó allí interrogando.</li>
+        <li>7. El invitado Sr. López se sentó en el <strong>sofá</strong> mientras esperaba la cena.</li>
+        <li>8. Nadie vio al jardinero acercarse a la mesa grande.</li>
+        <li>9. El mayordomo afirma que vio al invitado levantarse del sofá justo antes del grito.</li>
+      </ul>
+    </aside>
+
+    <!-- Escenario principal -->
+    <main class="escenario-wrapper">
+      <div class="escenario-header">
+        <h2>Escenario del salón</h2>
+        <div>
+          <button id="btnReiniciar" class="btn">Reiniciar</button>
+          <button id="btnComprobar" class="btn">Comprobar solución</button>
+        </div>
+      </div>
+      <div class="mensaje" id="mensaje"></div>
+
+      <!-- Banco de personajes (origen drag) -->
+      <section>
+        <h3>Arrastra los personajes al lugar correcto</h3>
+        <div class="personajes-banco" id="bancoPersonajes">
+          <!-- Se rellenan por JS -->
+        </div>
+      </section>
+
+      <!-- Escenario: 3x3 zonas -->
+      <section class="escenario" id="escenario">
+        <!-- Fila 1 -->
+        <div class="zona" data-slot="ventana">
+          <span class="zona-label">Ventana</span>
+          <!-- ventana -->
+          <div class="mueble ventana" style="top: 8px; left: 40%; width: 40%; height: 40%;"></div>
+          <div class="zona-drop" data-slot="ventana"></div>
+        </div>
+
+        <div class="zona" data-slot="mesa">
+          <span class="zona-label">Mesa grande</span>
+          <!-- mesa -->
+          <div class="mueble mesa" style="top: 30%; left: 20%; width: 60%; height: 40%;"></div>
+          <div class="zona-drop" data-slot="mesa"></div>
+        </div>
+
+        <div class="zona" data-slot="puerta_principal">
+          <span class="zona-label">Puerta principal</span>
+          <!-- puerta principal -->
+          <div class="mueble puerta" style="top: 10%; right: 10%; width: 20%; height: 60%;"></div>
+          <div class="zona-drop" data-slot="puerta_principal"></div>
+        </div>
+
+        <!-- Fila 2 -->
+        <div class="zona" data-slot="invernadero">
+          <span class="zona-label">Invernadero (plantas)</span>
+          <!-- plantas -->
+          <div class="mueble planta" style="top: 30%; left: 20%; width: 26%; height: 26%;"></div>
+          <div class="mueble planta" style="top: 40%; left: 55%; width: 26%; height: 26%;"></div>
+          <div class="zona-drop" data-slot="invernadero"></div>
+        </div>
+
+        <div class="zona" data-slot="sofa">
+          <span class="zona-label">Sofá del salón</span>
+          <!-- sofá -->
+          <div class="mueble sofa" style="bottom: 10%; left: 15%; width: 70%; height: 30%;"></div>
+          <div class="zona-drop" data-slot="sofa"></div>
+        </div>
+
+        <div class="zona" data-slot="cocina">
+          <span class="zona-label">Entrada a la cocina</span>
+          <!-- puerta cocina -->
+          <div class="mueble puerta" style="bottom: 10%; right: 15%; width: 20%; height: 40%;"></div>
+          <div class="zona-drop" data-slot="cocina"></div>
+        </div>
+
+        <!-- Fila 3 -->
+        <div class="zona" data-slot="puerta_pasillo">
+          <span class="zona-label">Puerta del pasillo</span>
+          <!-- puerta pasillo -->
+          <div class="mueble puerta" style="top: 20%; left: 10%; width: 20%; height: 50%;"></div>
+          <div class="zona-drop" data-slot="puerta_pasillo"></div>
+        </div>
+
+        <div class="zona" data-slot="zona_libre">
+          <span class="zona-label">Zona libre del salón</span>
+          <div class="zona-drop" data-slot="zona_libre"></div>
+        </div>
+
+        <div class="zona" data-slot="entrada">
+          <span class="zona-label">Entrada secundaria</span>
+          <!-- pequeña puerta -->
+          <div class="mueble puerta" style="bottom: 15%; left: 35%; width: 30%; height: 35%;"></div>
+          <div class="zona-drop" data-slot="entrada"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Modal felicitación -->
+  <div class="modal" id="modalFelicitacion">
+    <div class="modal-contenido">
+      <h2>¡Felicidades!</h2>
+      <p>Has resuelto el misterio del salón.  
+         Todos los personajes están en el lugar correcto.</p>
+      <button class="btn" id="btnCerrarModal">Cerrar</button>
+    </div>
+  </div>
+
+  <script>
+    // --- Datos del juego ---
+    const personajesData = [
+      { id: "victima", nombre: "Ernesto", rol: "victima", destino: "mesa" },
+      { id: "mayordomo", nombre: "Ricardo", rol: "mayordomo", destino: "puerta_pasillo" },
+      { id: "chef", nombre: "Lucía", rol: "chef", destino: "cocina" },
+      { id: "jardinero", nombre: "Mateo", rol: "jardinero", destino: "invernadero" },
+      { id: "sobrina", nombre: "Ana", rol: "sobrina", destino: "ventana" },
+      { id: "detective", nombre: "Vega", rol: "detective", destino: "puerta_principal" },
+      { id: "invitado", nombre: "Sr. López", rol: "invitado", destino: "sofa" }
+    ];
+
+    const banco = document.getElementById("bancoPersonajes");
+    const zonasDrop = document.querySelectorAll(".zona-drop");
+    const mensaje = document.getElementById("mensaje");
+    const modal = document.getElementById("modalFelicitacion");
+    const btnCerrarModal = document.getElementById("btnCerrarModal");
+    const btnReiniciar = document.getElementById("btnReiniciar");
+    const btnComprobar = document.getElementById("btnComprobar");
+
+    // --- Inicialización ---
+    function initCharacters() {
+      banco.innerHTML = "";
+      personajesData.forEach(p => {
+        const el = document.createElement("div");
+        el.className = "personaje";
+        el.draggable = true;
+        el.id = "pj-" + p.id;
+        el.dataset.id = p.id;
+        el.dataset.destino = p.destino;
+        el.dataset.rol = p.rol;
+
+        const cabeza = document.createElement("div");
+        cabeza.className = "personaje-cabeza";
+
+        const cuerpo = document.createElement("div");
+        cuerpo.className = "personaje-cuerpo";
+
+        const nombre = document.createElement("div");
+        nombre.className = "personaje-nombre";
+        nombre.textContent = p.nombre;
+
+        el.appendChild(cabeza);
+        el.appendChild(cuerpo);
+        el.appendChild(nombre);
+
+        banco.appendChild(el);
+      });
+    }
+
+    function limpiarZonas() {
+      zonasDrop.forEach(z => {
+        z.innerHTML = "";
+        z.classList.remove("over");
+      });
+    }
+
+    function initScene() {
+      limpiarZonas();
+      mensaje.textContent = "";
+    }
+
+    // --- Drag & Drop ---
+    let dragged = null;
+
+    function initDragAndDrop() {
+      document.querySelectorAll(".personaje").forEach(pj => {
+        pj.addEventListener("dragstart", e => {
+          dragged = pj;
+          e.dataTransfer.effectAllowed = "move";
+          e.dataTransfer.setData("text/plain", pj.id);
+        });
+
+        pj.addEventListener("dragend", () => {
+          dragged = null;
+        });
+      });
+
+      zonasDrop.forEach(zona => {
+        zona.addEventListener("dragover", e => {
+          e.preventDefault();
+          zona.classList.add("over");
+        });
+
+        zona.addEventListener("dragleave", () => {
+          zona.classList.remove("over");
+        });
+
+        zona.addEventListener("drop", e => {
+          e.preventDefault();
+          zona.classList.remove("over");
+          const id = e.dataTransfer.getData("text/plain");
+          const pj = document.getElementById(id);
+          if (!pj) return;
+
+          // Si ya hay un personaje en la zona, lo devolvemos al banco
+          if (zona.firstElementChild) {
+            banco.appendChild(zona.firstElementChild);
+          }
+
+          zona.appendChild(pj);
+        });
+      });
+
+      // Permitir soltar también en el banco
+      banco.addEventListener("dragover", e => {
+        e.preventDefault();
+      });
+
+      banco.addEventListener("drop", e => {
+        e.preventDefault();
+        const id = e.dataTransfer.getData("text/plain");
+        const pj = document.getElementById(id);
+        if (!pj) return;
+        banco.appendChild(pj);
+      });
+    }
+
+    // --- Comprobación de solución ---
+    function checkSolution() {
+      let correcto = true;
+
+      personajesData.forEach(p => {
+        const pjEl = document.getElementById("pj-" + p.id);
+        const destinoEsperado = p.destino;
+
+        // Buscar en qué zona está
+        let zonaActual = null;
+        zonasDrop.forEach(z => {
+          if (z.contains(pjEl)) {
+            zonaActual = z.dataset.slot;
+          }
+        });
+
+        if (zonaActual !== destinoEsperado) {
+          correcto = false;
+        }
+      });
+
+      if (!correcto) {
+        mensaje.textContent = "La solución aún no es correcta. Revisa las pistas.";
+        mensaje.style.color = "#b91c1c";
+      } else {
+        mensaje.textContent = "";
+        mostrarFelicitacion();
+      }
+    }
+
+    function mostrarFelicitacion() {
+      modal.style.display = "flex";
+    }
+
+    // --- Eventos ---
+    btnCerrarModal.addEventListener("click", () => {
+      modal.style.display = "none";
+    });
+
+    btnReiniciar.addEventListener("click", () => {
+      initScene();
+      initCharacters();
+      initDragAndDrop();
+    });
+
+    btnComprobar.addEventListener("click", () => {
+      checkSolution();
+    });
+
+    // --- Inicio ---
+    initCharacters();
+    initScene();
+    initDragAndDrop();
+  </script>
+</body>
+</html>
